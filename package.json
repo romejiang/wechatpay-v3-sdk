@@ -1,0 +1,19 @@
+{
+  "name": "wechat-pay-v3-sdk",
+  "version": "1.0.0",
+  "keywords": [
+    "wechat",
+    "pay",
+    "v3",
+    "wx",
+    "微信",
+    "支付"
+  ],
+  "description": "wechatPayV3 sdk",
+  "scripts": {},
+  "author": "wwog",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^16.4.10"
+  }
+}
