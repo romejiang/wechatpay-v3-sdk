@@ -1,6 +1,7 @@
 {
   "name": "wechat-pay-v3-sdk",
-  "version": "1.0.0",
+  "version": "1.0.2",
+  "main": "./dist/index.js",
   "keywords": [
     "wechat",
     "pay",
@@ -10,10 +11,14 @@
     "支付"
   ],
   "description": "wechatPayV3 sdk",
-  "scripts": {},
+  "scripts": {
+    "build":"tsup"
+  },
   "author": "wwog",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^16.4.10"
+    "@types/node": "^16.4.10",
+    "tsup": "^4.13.1",
+    "typescript": "^4.3.5"
   }
 }

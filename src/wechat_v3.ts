@@ -1,4 +1,4 @@
-import { createDecipheriv, createSign, createVerify, KeyLike, randomUUID, VerifyKeyObjectInput, VerifyPublicKeyInput, X509Certificate } from "crypto"
+import { createDecipheriv, createSign, createVerify, KeyLike, randomUUID, VerifyKeyObjectInput, VerifyPublicKeyInput } from "crypto"
 import { err, getCertificateSerialNo, trimBlank } from "./utils"
 
 export interface WechatPayV3Config {
