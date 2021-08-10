@@ -66,8 +66,6 @@ export class WechatPay extends WechatPayV3 {
       data,
     }
   }
-
-
   /**
   * 当你考虑使用此方法来满足你更多的需求时,可以提个pr来完善它
   */
@@ -110,10 +108,81 @@ export class WechatPay extends WechatPayV3 {
     }
   }
   /**
-   * App下单
-   * @param order 订单详情
+   * https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay5_0.shtml
+   * @description 请根据实际情况选择,业务量大时'task'更好,反之使用'onReq'
+   * @param schema 'task' 为定期任务,每12小时执行. 'onReq'为请求时被动触发,每日变更.
    * @returns 
    */
+  async autoUpdatePlatformCert(schema: 'task' | 'onReq' | false) {
+    this.autoUpdatePlatformCertOption.schema = schema
+    if (schema === false) {
+      return false
+    }
+    const flag = `${new Date} - 自动更新证书`
+    const cert = await this.getPlatformCert()
+
+    if (this.autoUpdatePlatformCertOption.timer) {
+      clearTimeout(this.autoUpdatePlatformCertOption.timer)
+    }
+    if (!cert) {
+      err(flag, `更新失败!${this.autoUpdatePlatformCertOption.retryCount * 5}秒后重试!`)
+      if (this.autoUpdatePlatformCertOption.retryCount > 5) {
+        err(flag, `重试次数超过上限!自动更新平台证书被关闭!`)
+        this.autoUpdatePlatformCert(false)
+      }
+      this.autoUpdatePlatformCertOption.timer = setTimeout(() => {
+        this.autoUpdatePlatformCertOption.retryCount += 1
+        log(`第${this.autoUpdatePlatformCertOption.retryCount}次重试!`)
+        this.autoUpdatePlatformCert(this.autoUpdatePlatformCertOption.schema)
+      }, this.autoUpdatePlatformCertOption.retryCount * 5 * 1000)
+      return false
+    }
+
+    switch (schema) {
+      case 'task':
+        this.autoUpdatePlatformCertOption.timer = setTimeout(() => {
+          this.autoUpdatePlatformCert('task')
+        }, 60 * 1000 * 60 * 12)
+      case 'onReq':
+        this.setPlatformCert(cert)
+        this.autoUpdatePlatformCertOption.updataAt = new Date
+        log(flag, '更新成功!')
+    }
+    return true
+  }
+  /**
+     * 如果平台证书存在,则所有响应都会验证签名,返回boolean.
+     * 如果证书不存在,表示一律通过,全部请求返回 noVerify.
+     * 你可以选择忽略,但在处理敏感操作时,有必要根据验签结果进行处理.
+     * @param body 
+     * @param headers 
+     */
+  verifyRes(body: string, headers: { [key: string]: string }) {
+    if (this.platformCert) {
+      const data = this.buildVerifyStr(
+        headers['wechatpay-timestamp'],
+        headers['wechatpay-nonce'],
+        body
+      )
+      return this.sha256WithRsaVerify(this.platformCert, headers['wechatpay-signature'], data)
+    }
+    return 'noVerify'
+  }
+
+  async closeOrder(out_trade_no: string) {
+    const params = {
+      mchid: this.config.mchid
+    }
+    const url = `https://api.mch.weixin.qq.com/v3/pay/transactions/out-trade-no/${out_trade_no}/close`
+    const auth = this.buildRequestAuth('POST', url, params)
+    const res = await this.post(url, params, auth, false)
+    return { status: res.status, success: res.status === 204 }
+  }
+  /**
+ * App下单
+ * @param order 订单详情
+ * @returns 
+ */
   async orderFromApp(order: OrderConfig) {
     const params = {
       ...order,
@@ -213,71 +282,25 @@ export class WechatPay extends WechatPayV3 {
     //密钥保存得当虽然不会遭遇太大问题,但这代表解密的后数据将无法使用或报错(具体报错还是怎么样没测过),可能导致连锁bug
     return undefined
   }
-
-
   /**
-   * https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay5_0.shtml
-   * @description 请根据实际情况选择,业务量大时'task'更好,反之使用'onReq'
-   * @param schema 'task' 为定期任务,每12小时执行. 'onReq'为请求时被动触发,每日变更.
+   * 退款
+   * @param config 
    * @returns 
    */
-  async autoUpdatePlatformCert(schema: 'task' | 'onReq' | false) {
-    this.autoUpdatePlatformCertOption.schema = schema
-    if (schema === false) {
-      return false
+  async refund(config: RefundConfig & (RefundConfig_id1 | RefundConfig_id2)) {
+    const url = 'https://api.mch.weixin.qq.com/v3/refund/domestic/refunds'
+    const auth = this.buildRequestAuth('POST', url, config)
+    const res = await this.post(url, config, auth)
+    return {
+      verify: res.verify,
+      status: res.status,
+      data: JSON.parse(res.data)
     }
-    const flag = `${new Date} - 自动更新证书`
-    const cert = await this.getPlatformCert()
-
-    if (this.autoUpdatePlatformCertOption.timer) {
-      clearTimeout(this.autoUpdatePlatformCertOption.timer)
-    }
-    if (!cert) {
-      err(flag, `更新失败!${this.autoUpdatePlatformCertOption.retryCount * 5}秒后重试!`)
-      if (this.autoUpdatePlatformCertOption.retryCount > 5) {
-        err(flag, `重试次数超过上限!自动更新平台证书被关闭!`)
-        this.autoUpdatePlatformCert(false)
-      }
-      this.autoUpdatePlatformCertOption.timer = setTimeout(() => {
-        this.autoUpdatePlatformCertOption.retryCount += 1
-        log(`第${this.autoUpdatePlatformCertOption.retryCount}次重试!`)
-        this.autoUpdatePlatformCert(this.autoUpdatePlatformCertOption.schema)
-      }, this.autoUpdatePlatformCertOption.retryCount * 5 * 1000)
-      return false
-    }
-
-    switch (schema) {
-      case 'task':
-        this.autoUpdatePlatformCertOption.timer = setTimeout(() => {
-          this.autoUpdatePlatformCert('task')
-        }, 60 * 1000 * 60 * 12)
-      case 'onReq':
-        this.setPlatformCert(cert)
-        this.autoUpdatePlatformCertOption.updataAt = new Date
-        log(flag, '更新成功!')
-    }
-    return true
-  }
-  /**
-     * 如果平台证书存在,则所有响应都会验证签名,返回boolean.
-     * 如果证书不存在,表示一律通过,全部请求返回 noVerify.
-     * 你可以选择忽略,但在处理敏感操作时,有必要根据验签结果进行处理.
-     * @param body 
-     * @param headers 
-     */
-  verifyRes(body: string, headers: { [key: string]: string }) {
-    if (this.platformCert) {
-      const data = this.buildVerifyStr(
-        headers['wechatpay-timestamp'],
-        headers['wechatpay-nonce'],
-        body
-      )
-      return this.sha256WithRsaVerify(this.platformCert, headers['wechatpay-signature'], data)
-    }
-    return 'noVerify'
   }
 }
-
+/**
+ * 给出的接口参数为推荐参数并非全部参数,请参阅微信官方文档
+ */
 interface OrderConfig {
   amount: {
     total: number
@@ -298,4 +321,29 @@ interface PlatformCert {
   },
   expire_time: string,
   serial_no: string
+}
+interface RefundConfig_id1 {
+  transaction_id: string
+}
+interface RefundConfig_id2 {
+  out_trade_no: string
+}
+/**
+ * 给出的接口参数为推荐参数并非全部参数,请参阅微信官方文档
+ */
+interface RefundConfig {
+  /**商户内部退款单号*/
+  out_refund_no: string
+  /**退款原因*/
+  reason?: string
+  notify_url?: string
+  /**默认使用未结算资金退款 */
+  funds_account?: 'AVAILABLE'
+  amount: {
+    /**退款金额 */
+    refund: number
+    /**原支付交易的订单总金额 */
+    total: number
+    currency: 'CNY'
+  }
 }
