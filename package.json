@@ -1,6 +1,6 @@
 {
   "name": "wechat-pay-v3",
-  "version": "1.0.5",
+  "version": "1.1.0",
   "main": "./dist/index.js",
   "keywords": [
     "wechat",
@@ -11,15 +11,19 @@
     "支付"
   ],
   "files": [
-    "./dist/*.*"
+    "dist",
+    "src"
   ],
+  "engines": {
+    "node": ">=15.6.0"
+  },
   "description": "易扩展,无任何依赖,支持自动更新证书,自动验签的微信支付v3实现.",
   "bugs": "https://github.com/wwog/wechatpay-v3-sdk/issues",
   "repository": {
     "url": "https://github.com/wwog/wechatpay-v3-sdk/issues"
   },
   "scripts": {
-    "publish": "npm publish",
+    "publish": "yarn publish",
     "build": "tsup"
   },
   "author": "wwog",

@@ -20,14 +20,15 @@
 
 ### 安装
 ```javascript
-  暂未上传npm
-  
-  没有依赖,你可以下载下来或者 👇
-  git clone https://github.com/wwog/wechatpay-v3-sdk
+  npm i wechat-pay-v3
 
-  如果你使用的js
-  全局安装esbuild 或者 typescript
-  推荐使用esbuild打包,更加轻量
+  //or
+  
+  yarn add wechat-pay-v3
+
+  没有依赖,你可以考虑直接yarn克隆安装这个库
+  yarn add https://github.com/wwog/wechatpay-v3-sdk
+
 ```
 
 ### 创建实例
