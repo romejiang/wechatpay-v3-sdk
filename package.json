@@ -11,8 +11,7 @@
     "支付"
   ],
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "engines": {
     "node": ">=15.6.0"
