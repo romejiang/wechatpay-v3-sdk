@@ -1,5 +1,5 @@
 /node_modules
 /yarn.lock
-
+/dist
 /apiclient_cert.pem
 /apiclient_key.pem
